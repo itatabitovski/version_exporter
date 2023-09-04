@@ -2,6 +2,7 @@ package collector
 
 import (
 	"log"
+	"sort"
 	"sync"
 	"time"
 
@@ -104,6 +105,7 @@ func (c *versionCollector) Collect(ch chan<- prometheus.Metric) {
 
 func getLatest(client client.Client, repo string) (*semver.Version, error) {
 	releases, err := client.Releases(repo)
+	versions := make([]*semver.Version, 0)
 	if err != nil {
 		return nil, err
 	}
@@ -119,8 +121,14 @@ func getLatest(client client.Client, repo string) (*semver.Version, error) {
 		if version.Prerelease() != "" {
 			continue
 		}
-		return version, nil
+		versions = append(versions, version)
 	}
+
+	if len(versions) > 0 {
+		sort.Sort(sort.Reverse(semver.Collection(versions)))
+		return versions[0], nil
+	}
+
 	return nil, nil
 }
 
